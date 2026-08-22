@@ -1,0 +1,18 @@
+{
+  "name": "aloha-vm",
+  "version": "0.1.0",
+  "description": "Compiler (alcomp) and runtime (aloha) for the Aloha-26 machine and assembler",
+  "private": true,
+  "bin": {
+    "alcomp": "dist/bin/alcomp.js",
+    "aloha": "dist/bin/aloha.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "smoke-test": "npm run build && node dist/bin/alcomp.js examples/findMaxNumber.asm.csv examples/findMaxNumber.machine.csv && node dist/bin/aloha.js examples/findMaxNumber.machine.csv 0 100 34 11 98 9 37 67"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/node": "^20.14.10"
+  }
+}

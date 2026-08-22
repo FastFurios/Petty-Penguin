@@ -1,0 +1,30 @@
+,define,MAX,200,,max value storage cell
+,define,C1,101,,input[1]
+,define,C2,102,,input[2]
+,define,C3,103,,input[3]
+,define,C4,104,,input[4]
+,define,C5,105,,input[5]
+start,import,,,,import value 1 into cell 100
+,import,,,,import value 2 into cell 101
+,import,,,,import value 3 into cell 102
+,import,,,,import value 4 into cell 103
+,import,,,,import value 5 into cell 104
+,import,,,,import value 6 into cell 105
+,add,[100],0,MAX,MAX := input[0]
+,ifGtGoto,[C1],[MAX],upd1,if input[1] > MAX goto upd1
+,goto,skip1,,,
+upd1,add,[C1],0,MAX,MAX := input[1]
+skip1,ifGtGoto,[C2],[MAX],upd2,if input[2] > MAX goto upd2
+,goto,skip2,,,
+upd2,add,[C2],0,MAX,MAX := input[2]
+skip2,ifGtGoto,[C3],[MAX],upd3,if input[3] > MAX goto upd3
+,goto,skip3,,,
+upd3,add,[C3],0,MAX,MAX := input[3]
+skip3,ifGtGoto,[C4],[MAX],upd4,if input[4] > MAX goto upd4
+,goto,skip4,,,
+upd4,add,[C4],0,MAX,MAX := input[4]
+skip4,ifGtGoto,[C5],[MAX],upd5,if input[5] > MAX goto upd5
+,goto,skip5,,,
+upd5,add,[C5],0,MAX,MAX := input[5]
+skip5,print,[MAX],,,print the result
+,exit,,,,

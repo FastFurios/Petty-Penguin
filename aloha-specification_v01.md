@@ -9,13 +9,14 @@ The first element in the array has index 0.
 A successor element e2 of an element e1 with the index i1 has an index i2 = i1 + 1.
 
 ## Cells
-A cell can contain either
+A Aloha Machine cell can contain either
 - nothing, i.e. it is an empty string, i.e. "nil" or
 - an expression
 
 An expression is either
 - a natural number or
 - [expression], i.e. an expression framed by a pair of brackets
+
 
 When the program reads an expression it evaluates it.
 An expression evaluates 
@@ -51,7 +52,7 @@ Here a list of commands and their parameters with data types.
 | Machine Command Id | Assembler Command Name | Parameter 1 | Parameter 2 | Parameter 3 | Explanation | Example |
 | -------- | -------- | -------- | ------- | ------- |------- | ------- |
 | 05 | define | constant name c: Symbol | value n: natural number || defines explicitely a constant with the name c for the number n; a constant name needs to be unique amongst all constants, may they be predefined (i.e. commands) or explicitely defined  | define NumDimensions 4: NumDimensions is 4 |  
-| 10 | import | target cell e: expression ||| read the next argument in the run command and store it in the cell e | import 13: put the next number given by the run command in cell 13; import [13]: put the number into the cell referred to by cell 13 | 
+| 10 | import |||| read the next argument in the run command and store it in the next cell; the first import stores the argument into the starting cell idnex given by the aloha runtime; following imports store their read argument values into consecutive cells  | import: put the next number given by the run command in the next cell, starting with the cell from which imports ought to be stored according to the aloha runtime | 
 | 20 | add | operand a: expression | operand b: expression | target cell c: expression | add a and b and store the result in the cell with the index c | add [202] [203] [100]: add the evaluated expressions [202] and [203] and store the result in the cell with index [100]; add 3 [12] 12: add 3 to the evaluated expression [12] and store the result in cell 12 |
 | 21 | sub | operand a: expression | operand b: expression | target cell c: expression | subtract a from b and store the result in the cell with index c; if the result is less than 0 then raise a runtime error 10 | sub [202] [203] [100]: subtract the evaluated expression [202] from evaluated expression [203] and store the result in the cell with index [100]; sub 3 [12] 12: subtract 3 from the evaluated expression in cell 12 and store the result in cell 12 |
 | 30 | nil | cell e: expression ||| puts nil into the cell with the index of the evaluated expression e | nil [202]: set the cell referred to by cell 202 to nil |
@@ -90,7 +91,7 @@ The Aloha Compiler can compile a program written in Aloha Assembler into Aloha M
 ```
 $ alcomp <Aloha-Assembler-code-file.csv> <Aloha-Machine-code-file.csv>
 ```
-The compiler reads each row with the command quadruples from the Assembler code csv file and assigns the first cell of that row, i.e. the command, in the cell with the index given by the value in the Assembler code csv column "cell index", then assigns the followng 3 arguments cells in the row to the consecutive cells.       
+The compiler reads the command quadruples of each row from the Assembler code csv file,  ignoring the rows with the command "define", and assigns the command and its 3 arguments to 4 consecutive cells in the Machine code. 
 
 It substitutes the contant names but not the jump targets. 
 It prints the list of constants as pairs of constant name and the unevaluated expression to the console. 
