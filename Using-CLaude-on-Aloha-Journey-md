@@ -9,3 +9,13 @@
 - asked Claude to create the aloha and alcomp programs: it complains about another spec inconsistency around the spec of the import command. I fix it. It produces in about 8 min the code and also has a couple of remarks for me for futire improvements.
   - cannot find the Typescrip code for aloha and alcomp, only the js versions: gives me the syntax how to call: OK
   - I run my own tests: does not work as the Aloha code seems to be hardcoded to 4 input values. It fails on more inputs as it ignores the additionally avilable input arguments. Claude seem to have taken the one runtime example in the Aloha specs and created an "overfitted" test case for it. It did not generalize for any number of input arguments (yet).   
+  - alcomp can only read csv with commas as separator: it offers me to auto-detect the separation character for the file and does it after my approval
+  - I have alcomp compile my version of findMaxNumber: it throws a compiler error as one define assigns not a number but an expression to the constant. Claude refers to the specification where I the corrected the specs for define.
+  - I asked if now the document ist OK: it comes up with some points. One is about jump targets: it seems it did not expect that jump targets are replaced at loading time not at compile time. I modified the specification and let it recheck:
+    - it finds jump targets being allowed in goto commands only narrow-minded. It does not realize that other commands do not have jump targets but only target cell where to store a result.
+    - As pointed out by Claude, I clarified the difference between the load file into the runtime, i.e. Executable code, and the Machine internal representation. 
+    - Claude implies itself that jump targets can be checked at complile-time but resolved not before at load time. Great. I clarify that in the specification for easier understanding. It suggests an explicit clarification in my specifiction. I ask it to do it for me. Result is great.
+    - I ask Claude to fix the bug that it does not load the code to the cell I specify in the aloha command. Claude realizes the intend of that feature and reflects on it sensationally!
+    - I ask Claude to make the necessary changes in the code. Without asking for, it tests its implementation by running tests with varying aloha command parameters to see if it still works when it locates the code in different places in the Machine memory.
+    - Claude gives a good summary of what it changed.  
+

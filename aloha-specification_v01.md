@@ -17,7 +17,6 @@ An expression is either
 - a natural number or
 - [expression], i.e. an expression framed by a pair of brackets
 
-
 When the program reads an expression it evaluates it.
 An expression evaluates 
 - to the number if the expression is a number, otherwise:
@@ -28,14 +27,22 @@ Terminology "Referring to cells":
 - in an expression [i], the number i refers to the cell with the index i. i framed by the pair of brackets evaluates then to the content of that referred cell i.  
 
 ## Assembler Symbols
-In Aloha Assembler we can use symbols as Constants names and Jump Targets. A symbol is a sequence of the ASCII characters. 
-
+A symbol is a sequence of the ASCII characters. 
+In Aloha Assembler we can use symbols as 
+- Constants names and 
+- Jump Targets. 
 
 ## Assembler Constants
-Constants exist only in Aloha Assembler code. When the Aloha compiler translates the Aloha Asembler code into Aloha Machine code it substitutes the Constants' names with the defined unevaluated expression. Constant names are Aloha Symbols. 
+A Constant is a pair of a symbol, the constant'S name, and an unevaluated expression.
+Constants exist only in Aloha Assembler code. When the Aloha compiler translates the Aloha Asembler code into Aloha Machine code it substitutes the Constants' names with the defined unevaluated expression.
+
 Aloha Assembler knows 2 types of constants:
-- predefined: command names are predefined constants, so the Aloha Compiler knows already how to substitute them with a command id when  creating the Aloha Machine code
+- predefined: command names are predefined constants, so the Aloha Compiler knows already how to substitute them with a command id when creating the Aloha Machine code
 - explicitely defined: the Constant is defined in the program's Assembler code with the "define" command. The Aloha Compiler substitutes any occurrance of the constant name with its defined value, i.e. the defined unevaluated expression.
+
+## Jump Targets
+Jump targets can be used in the first column in the Assembler code csv and the Executable code csv.
+Also, in Assembler and Executable Code, jump targets are accepted as argument in goto-type commands. 
 
 
 ## Commands and Arguments
@@ -51,14 +58,14 @@ Here a list of commands and their parameters with data types.
 
 | Machine Command Id | Assembler Command Name | Parameter 1 | Parameter 2 | Parameter 3 | Explanation | Example |
 | -------- | -------- | -------- | ------- | ------- |------- | ------- |
-| 05 | define | constant name c: Symbol | value n: natural number || defines explicitely a constant with the name c for the number n; a constant name needs to be unique amongst all constants, may they be predefined (i.e. commands) or explicitely defined  | define NumDimensions 4: NumDimensions is 4 |  
+| 05 | define | constant name c: Symbol | value n: expression || defines explicitely a constant with the name c for the expression e; a constant name needs to be unique amongst all constants, may they be predefined (i.e. commands) or explicitely defined  | define NumDimensions 4: NumDimensions is 4 |  
 | 10 | import |||| read the next argument in the run command and store it in the next cell; the first import stores the argument into the starting cell idnex given by the aloha runtime; following imports store their read argument values into consecutive cells  | import: put the next number given by the run command in the next cell, starting with the cell from which imports ought to be stored according to the aloha runtime | 
 | 20 | add | operand a: expression | operand b: expression | target cell c: expression | add a and b and store the result in the cell with the index c | add [202] [203] [100]: add the evaluated expressions [202] and [203] and store the result in the cell with index [100]; add 3 [12] 12: add 3 to the evaluated expression [12] and store the result in cell 12 |
 | 21 | sub | operand a: expression | operand b: expression | target cell c: expression | subtract a from b and store the result in the cell with index c; if the result is less than 0 then raise a runtime error 10 | sub [202] [203] [100]: subtract the evaluated expression [202] from evaluated expression [203] and store the result in the cell with index [100]; sub 3 [12] 12: subtract 3 from the evaluated expression in cell 12 and store the result in cell 12 |
 | 30 | nil | cell e: expression ||| puts nil into the cell with the index of the evaluated expression e | nil [202]: set the cell referred to by cell 202 to nil |
-| 50 | goto | target cell e: expression ||| set the program counter to evaluated expression e, so the next command being executed is the command that cell contains | goto 653: set the program counter to 653 | 
-| 51 | ifEqGoto | operand a: expression | operand b: expression | target cell e: expression | if a equals b then set the program counter to c | ifEqGoto [33] 100 305: if [33] evaluates to 100 then set the program counter to 305 |    
-| 52 | #ifGtGoto | operand a: expression | operand b: expression | target cell e: expression | if a is greater than b then set the program counter to c | ifGtGoto [33] 100 305: if [33] evaluates to a number greater than 100 then set the program counter to c |    
+| 50 | goto | target cell e: expression or jump target ||| set the program counter to evaluated expression e, so the next command being executed is the command that cell contains | goto 653: set the program counter to 653; goto end-loop: set the program counter to the command that is marked with the jump target end-loop in he Assembler and the Executable code csv | 
+| 51 | ifEqGoto | operand a: expression | operand b: expression | target cell e: expression  or jump target | if a equals b then set the program counter to c | ifEqGoto [33] 100 305: if [33] evaluates to 100 then set the program counter to 305 |    
+| 52 | ifGtGoto | operand a: expression | operand b: expression | target cell e: expression or jump target | if a is greater than b then set the program counter to c | ifGtGoto [33] 100 end-loop: if [33] evaluates to a number greater than 100 then set the program counter to the command marked with the jump target |    
 | 80 | print | output e: expression ||| print the evaluated expression e to the console |
 | 90 | exit |||| stop execution and return to the console from where the run command was launched |  
 
@@ -70,6 +77,11 @@ Aloha programs can only
 
 A Aloha program is a sequence of cell quadruples with an command in the first followed by 3 cells that can contain up to 3 arguments. 
 
+There are 3 representations of a program:
+1. Assembler code
+2. Executable code
+3. Machine code
+
 ### Assembler format
 Aloha Assembler code is reprented as a table in csv format. Rows represent commands with their arguments. The columns are:
 1. jump target (optionally): is a constant that marks the command of the row so program execution can jump from some other place to the command in that row as the next one to execute
@@ -79,21 +91,27 @@ Aloha Assembler code is reprented as a table in csv format. Rows represent comma
 1. argument 3 i.e. the expression used as value for parameter 3
 1. Comment: a text string
 
-### Machine format
-Aloha Machine code is represented as a table in csv format. Rows represent memory cells. The columns are:
-1. jump target (optionally)
+### Executable format
+The Aloha Compiler generates the Executable format from the Assembler format. 
+Aloha Executable code is represented as a table in csv format. Rows represent memory cells. The columns are:
+1. jump target (set optionally)
 1. cell content, i.e. an expression, that may be interpreted e.g. as a number, a cell index, a command id.  
 
 A command and its arguments allocate 4 consecutive cells, the command id followed by the arguments (or nils). 
+
+### Machine format
+The Aloha Runtime loads the Executable format into Machine's memory that is a part of the Runtime. In the process, all jump targets are replaced by the cell indexes of the targeted command cell. 
+The rows of the Executable code are loaded consecutively into Machine memory starting at the cell index given to the Aloha Runtime as the program's start cell (i.e. row i of the Executable code is loaded into the Machine cell with index start-cell-index + i). Jump targets are resolved relative to this same start cell. All other expressions in the program — including explicitly defined constants — are absolute cell indices and are loaded unchanged.
+After loading, the Aloha Machine code is just a sequence of cells each containing an expression, that may be interpreted e.g. as a number, a cell index, a command id.
 
 ## Compiling a Aloha Assembler program into the Aloha Machine code
 The Aloha Compiler can compile a program written in Aloha Assembler into Aloha Machine code. The Aloha Compiler can be run from a host machine's shell calling 
 ```
 $ alcomp <Aloha-Assembler-code-file.csv> <Aloha-Machine-code-file.csv>
 ```
-The compiler reads the command quadruples of each row from the Assembler code csv file,  ignoring the rows with the command "define", and assigns the command and its 3 arguments to 4 consecutive cells in the Machine code. 
+The compiler reads the command quadruples of each row from the Assembler code csv file, ignoring the rows with the command "define", and assigns the command and its 3 arguments to 4 consecutive cells in the Machine code. 
 
-It substitutes the contant names but not the jump targets. 
+It substitutes the contant names but not the jump targets.  It validates — at compile time — that every jump-target symbol used as a target argument actually exists as some row's label somewhere in the file.
 It prints the list of constants as pairs of constant name and the unevaluated expression to the console. 
 
 The compiler prints a log with compiler warnings and errors and success messages to the console. 
@@ -105,7 +123,10 @@ List of compilation errors:
 | 0002 | compile failure: cannot find jump target | could not find the jump target: | jump target constant name |
 
 ## Run a Aloha Machine program
-The Aloha Runtime can load a Aloha Machine code program into the Aloha Machine. The Aloha Runtime can be run from a host machine's shell calling 
+The Aloha Runtime can load a Aloha Machine code program into its Aloha Machine and runs it there. 
+In the loading process the ALoha Runtime substitutes all jum targets with the real cell indexes to where the marked commands where located.
+
+The Aloha Runtime can be run from a host machine's shell calling 
 ```
 $ aloha <Aloha-Machine-code-file.csv> <cell index with the aloha program command to start with> <cell index from where on the numbers of the input list should be consecutively stored> <the input list of natural numbers>
 ```
@@ -116,6 +137,8 @@ $aloha findMaxNumber.csv 200 100 34 11 98 9 37 67
 ```
 starts execution with the executing of the first command i.e. the command in the cell with index 200. Any input value imports of the input list elements, starting here with the value 34, will be stored consecutively in cells starting with index 100.    
 Eventually it returns to the console the result 98.
+
+
 
 Warning: make sure you leave enough memory cells for the Machine to assign memory cells for the not explicitely defined constants before you allocate memory cells for the imported input values and the program code. 
 

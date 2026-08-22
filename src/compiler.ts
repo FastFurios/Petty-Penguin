@@ -1,4 +1,4 @@
-import { parseCsv, stringifyCsv } from './csv';
+import { detectDelimiter, parseCsv, stringifyCsv } from './csv';
 import { COMMANDS_BY_NAME } from './commands';
 import { CompileErrors } from './errors';
 import { parseExpression } from './expression';
@@ -23,7 +23,7 @@ function isSymbol(s: string): boolean {
 }
 
 function parseAsmRows(csvText: string): AsmRow[] {
-  const rawRows = parseCsv(csvText);
+  const rawRows = parseCsv(csvText, detectDelimiter(csvText));
   const rows: AsmRow[] = [];
   rawRows.forEach((cols, i) => {
     const lineNumber = i + 1;
@@ -56,10 +56,12 @@ export function compile(asmCsvText: string): CompileResult {
     if (!isSymbol(name)) {
       throw CompileErrors.badSyntax(row.lineNumber, `invalid constant name "${name}"`);
     }
-    if (!/^\d+$/.test(value)) {
+    try {
+      parseExpression(value);
+    } catch {
       throw CompileErrors.badSyntax(
         row.lineNumber,
-        `define value must be a natural number, got "${value}"`,
+        `define value must be an expression (a natural number or a bracketed expression), got "${value}"`,
       );
     }
     if (constants.has(name)) {
@@ -88,13 +90,36 @@ export function compile(asmCsvText: string): CompileResult {
     nextCell += 4;
   });
 
-  function substitute(token: string, lineNumber: number): string {
-    if (token === '') return token;
-    return token.replace(IDENTIFIER_RE, (word) => {
+  // Substitutes constant names with their defined value. Jump targets are
+  // NOT substituted here: they stay symbolic in the Executable code and are
+  // only resolved to a (start-cell-relative) absolute cell index when the
+  // Aloha Runtime loads the program, since the load base isn't known yet at
+  // compile time. A jump target is only valid as the *entire* argument of a
+  // jump-target-eligible slot (see commands.ts); elsewhere it's a compile error.
+  function resolveArgument(raw: string, lineNumber: number, allowJumpTarget: boolean): string {
+    if (raw === '') return raw;
+
+    if (allowJumpTarget && isSymbol(raw) && jumpTargets.has(raw)) {
+      return raw; // kept symbolic; resolved by the Aloha Runtime at load time
+    }
+
+    const substituted = raw.replace(IDENTIFIER_RE, (word) => {
       if (constants.has(word)) return constants.get(word) as string;
-      if (jumpTargets.has(word)) return String(jumpTargets.get(word));
+      if (jumpTargets.has(word)) {
+        throw CompileErrors.badSyntax(
+          lineNumber,
+          `jump target "${word}" cannot be used here; a jump target may only be used as the whole target argument of goto, ifEqGoto, or ifGtGoto`,
+        );
+      }
       throw CompileErrors.jumpTargetNotFound(word, lineNumber);
     });
+
+    try {
+      parseExpression(substituted);
+    } catch {
+      throw CompileErrors.badSyntax(lineNumber, `argument "${raw}" is not a valid expression`);
+    }
+    return substituted;
   }
 
   // Pass 3: emit machine cells.
@@ -115,13 +140,7 @@ export function compile(asmCsvText: string): CompileResult {
 
     const argCells: Array<string | null> = row.args.map((raw, argIdx) => {
       if (argIdx >= spec.arity || raw === '') return null;
-      const substituted = substitute(raw, row.lineNumber);
-      try {
-        parseExpression(substituted);
-      } catch {
-        throw CompileErrors.badSyntax(row.lineNumber, `argument "${raw}" is not a valid expression`);
-      }
-      return substituted;
+      return resolveArgument(raw, row.lineNumber, spec.jumpTargetArgIndex === argIdx);
     });
 
     machineRows.push([row.jumpTarget, String(spec.id)]);

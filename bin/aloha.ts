@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as fs from 'node:fs';
 import { loadMachineCode, run } from '../src/runtime';
+import { Memory } from '../src/memory';
 import { writeDump } from '../src/dump';
 import { AlohaError } from '../src/errors';
 
@@ -28,15 +29,18 @@ function main(): void {
   }
 
   const csvText = fs.readFileSync(machinePath, 'utf8');
-  const memory = loadMachineCode(csvText);
+  let memory: Memory | undefined;
 
   try {
+    memory = loadMachineCode(csvText, startCell);
     run(memory, { startCell, inputLoadCell, input }, (n) => console.log(n));
   } catch (err) {
     if (err instanceof AlohaError) {
       console.error(`[${err.code}] ${err.errorName}: ${err.message}`);
-      const dumpPath = writeDump(machinePath, memory);
-      console.error(`Dump written to: ${dumpPath}`);
+      if (memory) {
+        const dumpPath = writeDump(machinePath, memory);
+        console.error(`Dump written to: ${dumpPath}`);
+      }
       process.exit(1);
     }
     throw err;

@@ -64,4 +64,11 @@ export const RuntimeErrors = {
       `cell ${pc} does not contain a known command id: "${idContent}"`,
       { pc, idContent },
     ),
+  unresolvedJumpTarget: (name: string): RuntimeErrorAloha =>
+    new RuntimeErrorAloha(
+      'X003',
+      'runtime error: unresolved jump target (implementation extension, not in spec)',
+      `Executable code references a jump target that has no matching label: ${name}`,
+      { jumpTarget: name },
+    ),
 };

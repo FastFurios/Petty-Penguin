@@ -1,4 +1,23 @@
-export function parseCsv(text: string): string[][] {
+// Sniffs the delimiter from the first line: ';' only if that line has
+// semicolons but no (unquoted) commas, otherwise defaults to ','.
+export function detectDelimiter(text: string): ',' | ';' {
+  const firstLine = text.split(/\r\n|\n|\r/, 1)[0] ?? '';
+  let commas = 0;
+  let semicolons = 0;
+  let inQuotes = false;
+  for (const ch of firstLine) {
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (inQuotes) continue;
+    if (ch === ',') commas += 1;
+    else if (ch === ';') semicolons += 1;
+  }
+  return commas === 0 && semicolons > 0 ? ';' : ',';
+}
+
+export function parseCsv(text: string, delimiter: string = ','): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
@@ -29,7 +48,7 @@ export function parseCsv(text: string): string[][] {
       i += 1;
       continue;
     }
-    if (ch === ',') {
+    if (ch === delimiter) {
       row.push(field);
       field = '';
       i += 1;

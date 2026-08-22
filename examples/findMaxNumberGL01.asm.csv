@@ -1,0 +1,14 @@
+;define;ProgramStartCell;0;;
+;define;CurrElementCell;100;;
+;define;CurrElementValue;[100];;
+;define;MaxSoFarCell;101;;
+;define;MaxSoFarValue;[101];;
+;add;0;0;MaxSoFarCell;
+;import;ProgramStartCell;;;
+loop-begin;import;CurrElementCell;;;
+;ifEqGoto;CurrElementValue;nil;exit-loop;no more inputs
+;ifGtGoto;MaxSoFarValue;CurrElementValue;complete-loop;current value less than maximum so far
+;add;CurrElementValue;0;MaxSoFarCell;
+complete-loop;goto;loop-begin;;;
+exit-loop;print;MaxSoFarValue;;;
+;exit;;;;

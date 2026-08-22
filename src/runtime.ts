@@ -1,5 +1,5 @@
 import { Memory } from './memory';
-import { parseCsv } from './csv';
+import { detectDelimiter, parseCsv } from './csv';
 import { COMMANDS_BY_ID } from './commands';
 import { RuntimeErrors } from './errors';
 import { evaluateString } from './expression';
@@ -10,12 +10,39 @@ export interface RunOptions {
   input: number[];
 }
 
-export function loadMachineCode(csvText: string): Memory {
-  const rows = parseCsv(csvText).filter((cols) => !(cols.length <= 1 && (cols[0] ?? '') === ''));
+const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+// Loads the Executable code into Machine memory starting at `startCell`, i.e.
+// row i of the Executable code lands in the Machine cell with index
+// startCell + i. Jump targets are resolved to that same start-cell-relative
+// absolute cell index; all other expressions (including constants baked in
+// at compile time) are absolute and are loaded unchanged.
+export function loadMachineCode(csvText: string, startCell: number): Memory {
+  const rows = parseCsv(csvText, detectDelimiter(csvText)).filter(
+    (cols) => !(cols.length <= 1 && (cols[0] ?? '') === ''),
+  );
+
+  const jumpTargets = new Map<string, number>();
+  rows.forEach((cols, relativeOffset) => {
+    const label = (cols[0] ?? '').trim();
+    if (label) jumpTargets.set(label, relativeOffset);
+  });
+
   const memory = new Memory();
-  rows.forEach((cols, index) => {
+  rows.forEach((cols, relativeOffset) => {
     const content = (cols[1] ?? '').trim();
-    memory.set(index, content === '' ? null : content);
+    const cellIndex = startCell + relativeOffset;
+    if (content === '') {
+      memory.set(cellIndex, null);
+      return;
+    }
+    if (SYMBOL_RE.test(content)) {
+      const targetOffset = jumpTargets.get(content);
+      if (targetOffset === undefined) throw RuntimeErrors.unresolvedJumpTarget(content);
+      memory.set(cellIndex, String(startCell + targetOffset));
+      return;
+    }
+    memory.set(cellIndex, content);
   });
   return memory;
 }
