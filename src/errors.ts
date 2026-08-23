@@ -51,12 +51,6 @@ export const RuntimeErrors = {
       `cell id is negative or expression parsing error: ${expr}`,
       { expression: expr },
     ),
-  inputExhausted: (): RuntimeErrorAloha =>
-    new RuntimeErrorAloha(
-      'X001',
-      'runtime error: input exhausted (implementation extension, not in spec)',
-      'import was executed but the input list is exhausted',
-    ),
   unknownCommand: (idContent: string, pc: number): RuntimeErrorAloha =>
     new RuntimeErrorAloha(
       'X002',
@@ -70,5 +64,12 @@ export const RuntimeErrors = {
       'runtime error: unresolved jump target (implementation extension, not in spec)',
       `Executable code references a jump target that has no matching label: ${name}`,
       { jumpTarget: name },
+    ),
+  comparisonWithNil: (pc: number): RuntimeErrorAloha =>
+    new RuntimeErrorAloha(
+      'X004',
+      'runtime error: comparison with nil (implementation extension, not in spec)',
+      'ifGtGoto cannot compare nil: both operands must evaluate to a number',
+      { cellIndexOfCommand: pc },
     ),
 };

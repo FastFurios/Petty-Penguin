@@ -2,7 +2,7 @@ import { Memory } from './memory';
 import { detectDelimiter, parseCsv } from './csv';
 import { COMMANDS_BY_ID } from './commands';
 import { RuntimeErrors } from './errors';
-import { evaluateString } from './expression';
+import { evaluateString, evaluateStringNilable } from './expression';
 
 export interface RunOptions {
   startCell: number;
@@ -10,7 +10,8 @@ export interface RunOptions {
   input: number[];
 }
 
-const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+// Must match compiler.ts's SYMBOL_RE: letters, digits, underscore and hyphen.
+const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 
 // Loads the Executable code into Machine memory starting at `startCell`, i.e.
 // row i of the Executable code lands in the Machine cell with index
@@ -65,13 +66,29 @@ export function run(memory: Memory, options: RunOptions, print: (n: number) => v
       if (raw === null) throw RuntimeErrors.cellAccessFailure(`<nil argument ${i + 1} at cell ${pc}>`);
       return evaluateString(raw, memory);
     };
+    // For parameters typed "expression or nil" (ifEqGoto/ifGtGoto's operands):
+    // an empty argument cell, or an expression that dereferences to an empty
+    // cell, yields null instead of throwing.
+    const evalArgNilable = (i: number): number | null => {
+      const raw = argRaw[i];
+      if (raw === null) return null;
+      return evaluateStringNilable(raw, memory);
+    };
 
     switch (spec.name) {
       case 'import': {
-        if (inputQueue.length === 0) throw RuntimeErrors.inputExhausted();
-        const value = inputQueue.shift() as number;
-        memory.set(inputCursor, String(value));
+        const value = inputQueue.length === 0 ? null : String(inputQueue.shift() as number);
+        memory.set(inputCursor, value);
         inputCursor += 1;
+        pc += 4;
+        break;
+      }
+      case 'importTo': {
+        const value = inputQueue.length === 0 ? null : String(inputQueue.shift() as number);
+        const target = evalArg(0);
+        memory.set(target, value);
+        // Deliberately does not touch inputCursor: import's auto-increment
+        // cursor and importTo's explicit target are independent, per spec.
         pc += 4;
         break;
       }
@@ -93,7 +110,7 @@ export function run(memory: Memory, options: RunOptions, print: (n: number) => v
         pc += 4;
         break;
       }
-      case 'nil': {
+      case 'clear': {
         const target = evalArg(0);
         memory.set(target, null);
         pc += 4;
@@ -104,16 +121,17 @@ export function run(memory: Memory, options: RunOptions, print: (n: number) => v
         break;
       }
       case 'ifEqGoto': {
-        const a = evalArg(0);
-        const b = evalArg(1);
+        const a = evalArgNilable(0);
+        const b = evalArgNilable(1);
         const target = evalArg(2);
         pc = a === b ? target : pc + 4;
         break;
       }
       case 'ifGtGoto': {
-        const a = evalArg(0);
-        const b = evalArg(1);
+        const a = evalArgNilable(0);
+        const b = evalArgNilable(1);
         const target = evalArg(2);
+        if (a === null || b === null) throw RuntimeErrors.comparisonWithNil(pc);
         pc = a > b ? target : pc + 4;
         break;
       }

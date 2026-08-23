@@ -59,13 +59,14 @@ Here a list of commands and their parameters with data types.
 | Machine Command Id | Assembler Command Name | Parameter 1 | Parameter 2 | Parameter 3 | Explanation | Example |
 | -------- | -------- | -------- | ------- | ------- |------- | ------- |
 | 05 | define | constant name c: Symbol | value n: expression || defines explicitely a constant with the name c for the expression e; a constant name needs to be unique amongst all constants, may they be predefined (i.e. commands) or explicitely defined  | define NumDimensions 4: NumDimensions is 4 |  
-| 10 | import |||| read the next argument in the run command and store it in the next cell; the first import stores the argument into the starting cell idnex given by the aloha runtime; following imports store their read argument values into consecutive cells  | import: put the next number given by the run command in the next cell, starting with the cell from which imports ought to be stored according to the aloha runtime | 
-| 20 | add | operand a: expression | operand b: expression | target cell c: expression | add a and b and store the result in the cell with the index c | add [202] [203] [100]: add the evaluated expressions [202] and [203] and store the result in the cell with index [100]; add 3 [12] 12: add 3 to the evaluated expression [12] and store the result in cell 12 |
-| 21 | sub | operand a: expression | operand b: expression | target cell c: expression | subtract a from b and store the result in the cell with index c; if the result is less than 0 then raise a runtime error 10 | sub [202] [203] [100]: subtract the evaluated expression [202] from evaluated expression [203] and store the result in the cell with index [100]; sub 3 [12] 12: subtract 3 from the evaluated expression in cell 12 and store the result in cell 12 |
-| 30 | nil | cell e: expression ||| puts nil into the cell with the index of the evaluated expression e | nil [202]: set the cell referred to by cell 202 to nil |
-| 50 | goto | target cell e: expression or jump target ||| set the program counter to evaluated expression e, so the next command being executed is the command that cell contains | goto 653: set the program counter to 653; goto end-loop: set the program counter to the command that is marked with the jump target end-loop in he Assembler and the Executable code csv | 
-| 51 | ifEqGoto | operand a: expression | operand b: expression | target cell e: expression  or jump target | if a equals b then set the program counter to c | ifEqGoto [33] 100 305: if [33] evaluates to 100 then set the program counter to 305 |    
-| 52 | ifGtGoto | operand a: expression | operand b: expression | target cell e: expression or jump target | if a is greater than b then set the program counter to c | ifGtGoto [33] 100 end-loop: if [33] evaluates to a number greater than 100 then set the program counter to the command marked with the jump target |    
+| 10 | import |||| read the next argument in the run command and store it in the next cell; the first import stores the argument into the starting cell index given by the aloha runtime; following imports store their read argument values into consecutive cells. If there is no input anymore, import stores a nil in the next cell. Remark: the intermediate use of importTo is independant. It keeps the automatic advancing to the next cell to import into unchanged | import: put the next number given by the run command in the next cell, starting with the cell from which imports ought to be stored according to the aloha runtime | 
+| 11 | importTo | cell e: expression ||| read the next argument in the run command and store it in the cell e. If there is no input anymore, importTo stores a nil in cell e. Remark: importTo does not affect the automatic alloction of cells of the import command. | importTo [100]: put the next number given by the run command in the cell that cell 100 refers to | 
+| 20 | add | operand a: expression | operand b: expression | result cell c: expression | add a and b and store the result in the cell with the index c | add [202] [203] [100]: add the evaluated expressions [202] and [203] and store the result in the cell with index [100]; add 3 [12] 12: add 3 to the evaluated expression [12] and store the result in cell 12 |
+| 21 | sub | operand a: expression | operand b: expression | result cell c: expression | subtract a from b and store the result in the cell with index c; if the result is less than 0 then raise a runtime error 10 | sub [202] [203] [100]: subtract the evaluated expression [202] from evaluated expression [203] and store the result in the cell with index [100]; sub 3 [12] 12: subtract 3 from the evaluated expression in cell 12 and store the result in cell 12 |
+| 30 | clear | cell e: expression ||| puts nil into the cell with the index of the evaluated expression e | clear [202]: set the cell referred to by cell 202 to nil |
+| 50 | goto | jump target t: expression or jump target ||| set the program counter to evaluated expression e, so the next command being executed is the command that the cell contains | goto 653: set the program counter to 653; goto end-loop: set the program counter to the command that is marked with the jump target end-loop in the Assembler and the Executable code csv | 
+| 51 | ifEqGoto | operand a: expression or nil | operand b: expression or nil| jump target t: expression or jump target | if a equals b then set the program counter to c | ifEqGoto [33] 100 305: if [33] evaluates to 100 then set the program counter to 305 |    
+| 52 | ifGtGoto | operand a: expression or nil | operand b: expression or nil | jump target t: expression or jump target | if a is greater than b then set the program counter to c | ifGtGoto [33] 100 end-loop: if [33] evaluates to a number greater than 100 then set the program counter to the command marked with the jump target |    
 | 80 | print | output e: expression ||| print the evaluated expression e to the console |
 | 90 | exit |||| stop execution and return to the console from where the run command was launched |  
 
@@ -101,7 +102,6 @@ A command and its arguments allocate 4 consecutive cells, the command id followe
 
 ### Machine format
 The Aloha Runtime loads the Executable format into Machine's memory that is a part of the Runtime. In the process, all jump targets are replaced by the cell indexes of the targeted command cell. 
-The rows of the Executable code are loaded consecutively into Machine memory starting at the cell index given to the Aloha Runtime as the program's start cell (i.e. row i of the Executable code is loaded into the Machine cell with index start-cell-index + i). Jump targets are resolved relative to this same start cell. All other expressions in the program — including explicitly defined constants — are absolute cell indices and are loaded unchanged.
 After loading, the Aloha Machine code is just a sequence of cells each containing an expression, that may be interpreted e.g. as a number, a cell index, a command id.
 
 ## Compiling a Aloha Assembler program into the Aloha Machine code
@@ -124,7 +124,7 @@ List of compilation errors:
 
 ## Run a Aloha Machine program
 The Aloha Runtime can load a Aloha Machine code program into its Aloha Machine and runs it there. 
-In the loading process the ALoha Runtime substitutes all jum targets with the real cell indexes to where the marked commands where located.
+In the loading process the ALoha Runtime substitutes all jump targets with the real cell indexes to where the marked commands where located.
 
 The Aloha Runtime can be run from a host machine's shell calling 
 ```

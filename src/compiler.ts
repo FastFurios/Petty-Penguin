@@ -15,8 +15,9 @@ export interface CompileResult {
   constants: Array<{ name: string; value: string }>;
 }
 
-const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_]*/g;
+// Symbols allow letters, digits, underscore and hyphen (e.g. loop-begin).
+const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+const IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_-]*/g;
 
 function isSymbol(s: string): boolean {
   return SYMBOL_RE.test(s);
@@ -140,6 +141,15 @@ export function compile(asmCsvText: string): CompileResult {
 
     const argCells: Array<string | null> = row.args.map((raw, argIdx) => {
       if (argIdx >= spec.arity || raw === '') return null;
+      if (raw === 'nil') {
+        if (!spec.nilableArgIndices?.includes(argIdx)) {
+          throw CompileErrors.badSyntax(
+            row.lineNumber,
+            `"nil" is not allowed here; parameter ${argIdx + 1} of "${row.command}" must be an expression`,
+          );
+        }
+        return null; // the literal "nil" is represented as an empty cell
+      }
       return resolveArgument(raw, row.lineNumber, spec.jumpTargetArgIndex === argIdx);
     });
 

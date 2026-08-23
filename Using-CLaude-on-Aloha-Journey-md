@@ -19,3 +19,13 @@
     - I ask Claude to make the necessary changes in the code. Without asking for, it tests its implementation by running tests with varying aloha command parameters to see if it still works when it locates the code in different places in the Machine memory.
     - Claude gives a good summary of what it changed.  
 
+## 2026-08-23
+- I try to compile my examples/findMaxNumberGL01.asm.csv with "alcomp": syntax errors as I am using import with a target cell which conflicts my latest spec where import does not take an argument. I add to the spec a new command "importTo".
+- Claude detects a ambiguity in my specs between import and importTo: they could interfere but Claude makes the right assumption in favor of my intention. Anyway, I clarify this in the specification: Claude confirms consistency of my specs now.
+- Ask Claude to make the necessary changes to the code.
+- The compile of examples/findMaxNumberGL01.asm.csv fails: alcomp cannot find the jump tatget "loop", however, there is no isolated symbol "loop" in the Assembler code. I confront Claude with it: it can explain what is wrong with a regex alcomp uses and suggest to add "-" as a regular character in a symbol. Claude makes the necessary code changes. 
+- It point out that there are more difficulities coming from a) my command constant "nil" that alcomp uses to substitute nil values. b) there is no sound solution yet to signal end of importing input values....well observed!  
+- I made changes to the specs: nil indicates end of inputs and allowing nil as operand in ifxxGoto commands.
+- Claude suggest 2 options how to resolve the "ifGtGoto 5 nil somewhere" semantical ambiguity: I advice to throw a runtim error then Claude makes code changes. I run "node dist/bin/aloha.js examples/findMaxNumberGL01.machine.csv 0 45 100 34 6 98 9
+ 37 67 301 77 39 111", which results correctly to 301.
+ - Claude hat ca. 650 LoC produziert. Code sieht nicht gerade "elegant" aus, aber man kann ihn verstehen. Bin sehr sicher, dass mein Code sehr anders aussehen würde. Ob besser ist tbv. 

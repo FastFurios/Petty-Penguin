@@ -75,3 +75,26 @@ export function evaluateString(raw: string, memory: Memory): number {
   const expr = parseExpression(raw);
   return evaluate(expr, memory, raw);
 }
+
+// Like evaluate(), but a dereference that bottoms out on an empty (nil) cell
+// yields null instead of throwing. Only for parameters explicitly typed
+// "expression or nil" (ifEqGoto/ifGtGoto's operands); the index inside a
+// bracket must still evaluate to a real number, so nesting still uses the
+// strict evaluate() for that part.
+export function evaluateNilable(expr: Expr, memory: Memory, original: string): number | null {
+  if (expr.kind === 'num') return expr.value;
+
+  const idx = evaluate(expr.inner, memory, original);
+  if (!Number.isInteger(idx) || idx < 0) {
+    throw RuntimeErrors.cellAccessFailure(original);
+  }
+  const content = memory.get(idx);
+  if (content === null) return null;
+  const contentExpr = parseExpression(content);
+  return evaluateNilable(contentExpr, memory, content);
+}
+
+export function evaluateStringNilable(raw: string, memory: Memory): number | null {
+  const expr = parseExpression(raw);
+  return evaluateNilable(expr, memory, raw);
+}
