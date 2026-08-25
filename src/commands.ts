@@ -13,9 +13,11 @@ export interface CommandSpec {
 }
 
 // Machine Command Id / Assembler Command Name / arity, per aloha-specification_v01.md's
-// Command Overview table. `define` is compile-time only (see compiler.ts) but is kept
-// here since it's a predefined constant like every other command name.
+// Command Overview table. `comment` and `define` are Assembler-only: they never
+// produce Machine cells (see compiler.ts) but are kept here since they're
+// predefined constants like every other command name.
 export const COMMANDS: CommandSpec[] = [
+  { id: 2, name: 'comment', arity: 1 },
   { id: 5, name: 'define', arity: 2 },
   { id: 10, name: 'import', arity: 0 },
   { id: 11, name: 'importTo', arity: 1 },

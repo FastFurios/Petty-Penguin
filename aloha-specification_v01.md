@@ -9,7 +9,7 @@ The first element in the array has index 0.
 A successor element e2 of an element e1 with the index i1 has an index i2 = i1 + 1.
 
 ## Cells
-A Aloha Machine cell can contain either
+An Aloha Machine cell can contain either
 - nothing, i.e. it is an empty string, i.e. "nil" or
 - an expression
 
@@ -58,9 +58,10 @@ Here a list of commands and their parameters with data types.
 
 | Machine Command Id | Assembler Command Name | Parameter 1 | Parameter 2 | Parameter 3 | Explanation | Example |
 | -------- | -------- | -------- | ------- | ------- |------- | ------- |
+| 02 | comment | any text ||| is a line of text that is discarded when being compiled | comment This is the start of the program |  
 | 05 | define | constant name c: Symbol | value n: expression || defines explicitely a constant with the name c for the expression e; a constant name needs to be unique amongst all constants, may they be predefined (i.e. commands) or explicitely defined  | define NumDimensions 4: NumDimensions is 4 |  
-| 10 | import |||| read the next argument in the run command and store it in the next cell; the first import stores the argument into the starting cell index given by the aloha runtime; following imports store their read argument values into consecutive cells. If there is no input anymore, import stores a nil in the next cell. Remark: the intermediate use of importTo is independant. It keeps the automatic advancing to the next cell to import into unchanged | import: put the next number given by the run command in the next cell, starting with the cell from which imports ought to be stored according to the aloha runtime | 
-| 11 | importTo | cell e: expression ||| read the next argument in the run command and store it in the cell e. If there is no input anymore, importTo stores a nil in cell e. Remark: importTo does not affect the automatic alloction of cells of the import command. | importTo [100]: put the next number given by the run command in the cell that cell 100 refers to | 
+| 10 | import |||| read the next argument in the run command and store it in the next cell; the first import stores the argument into the starting cell index given by the aloha runtime; following imports store their read argument values into consecutive cells. If there is no input anymore, import stores a nil in the next cell. Remark: the intermediate use of importTo is independant. It keeps the automatic advancing to the next cell to import into unchanged. | import: put the next number given by the run command in the next cell, starting with the cell from which imports ought to be stored according to the aloha runtime | 
+| 11 | importTo | cell e: expression ||| read the next argument in the run command and store it in the cell e. If there is no input anymore, importTo stores a nil in cell e. Remark: importTo does not interfere with the automatic alloction of cells of the import command. | importTo [100]: put the next number given by the run command in the cell that cell 100 refers to | 
 | 20 | add | operand a: expression | operand b: expression | result cell c: expression | add a and b and store the result in the cell with the index c | add [202] [203] [100]: add the evaluated expressions [202] and [203] and store the result in the cell with index [100]; add 3 [12] 12: add 3 to the evaluated expression [12] and store the result in cell 12 |
 | 21 | sub | operand a: expression | operand b: expression | result cell c: expression | subtract a from b and store the result in the cell with index c; if the result is less than 0 then raise a runtime error 10 | sub [202] [203] [100]: subtract the evaluated expression [202] from evaluated expression [203] and store the result in the cell with index [100]; sub 3 [12] 12: subtract 3 from the evaluated expression in cell 12 and store the result in cell 12 |
 | 30 | clear | cell e: expression ||| puts nil into the cell with the index of the evaluated expression e | clear [202]: set the cell referred to by cell 202 to nil |
@@ -138,7 +139,7 @@ $aloha findMaxNumber.csv 200 100 34 11 98 9 37 67
 starts execution with the executing of the first command i.e. the command in the cell with index 200. Any input value imports of the input list elements, starting here with the value 34, will be stored consecutively in cells starting with index 100.    
 Eventually it returns to the console the result 98.
 
-
+The Aloha runtime maintains the index of the cell with the command being currently executed in the cell 0.  
 
 Warning: make sure you leave enough memory cells for the Machine to assign memory cells for the not explicitely defined constants before you allocate memory cells for the imported input values and the program code. 
 

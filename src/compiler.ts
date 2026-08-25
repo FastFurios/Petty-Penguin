@@ -71,9 +71,19 @@ export function compile(asmCsvText: string): CompileResult {
     constants.set(name, value);
   }
 
-  // Pass 2: assign cell indices to non-`define` rows (4 consecutive cells each,
-  // in file order) and build the jump-target table from their label column.
-  const codeRows = asmRows.filter((r) => r.command !== 'define');
+  // `comment` rows are discarded entirely at compile time: their argument is
+  // free text, not an expression, and never reaches Pass 3.
+  for (const row of asmRows) {
+    if (row.command !== 'comment') continue;
+    if (row.jumpTarget !== '') {
+      throw CompileErrors.badSyntax(row.lineNumber, 'a "comment" row cannot have a jump target');
+    }
+  }
+
+  // Pass 2: assign cell indices to non-`define`/`comment` rows (4 consecutive
+  // cells each, in file order) and build the jump-target table from their
+  // label column.
+  const codeRows = asmRows.filter((r) => r.command !== 'define' && r.command !== 'comment');
   const jumpTargets = new Map<string, number>();
   let nextCell = 0;
   const cellIndexOf: number[] = [];

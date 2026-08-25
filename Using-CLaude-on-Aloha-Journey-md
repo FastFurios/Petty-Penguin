@@ -29,3 +29,7 @@
 - Claude suggest 2 options how to resolve the "ifGtGoto 5 nil somewhere" semantical ambiguity: I advice to throw a runtim error then Claude makes code changes. I run "node dist/bin/aloha.js examples/findMaxNumberGL01.machine.csv 0 45 100 34 6 98 9
  37 67 301 77 39 111", which results correctly to 301.
  - Claude hat ca. 650 LoC produziert. Code sieht nicht gerade "elegant" aus, aber man kann ihn verstehen. Bin sehr sicher, dass mein Code sehr anders aussehen würde. Ob besser ist tbv. 
+
+ ## 2026-08-25
+- I let Claude add a accessible program counter in cell 0
+- I introduce a new Assembler command "comment". Claude build this command into the code.

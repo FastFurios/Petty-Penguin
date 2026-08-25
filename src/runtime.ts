@@ -54,6 +54,10 @@ export function run(memory: Memory, options: RunOptions, print: (n: number) => v
   const inputQueue = [...options.input];
 
   for (;;) {
+    // Cell 0 is reserved: it always holds the index of the cell currently
+    // being executed, readable by the program itself via [0].
+    memory.set(0, String(pc));
+
     const idContent = memory.get(pc);
     if (idContent === null) throw RuntimeErrors.unknownCommand('nil', pc);
     const id = Number(idContent);
