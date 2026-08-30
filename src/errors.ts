@@ -24,12 +24,12 @@ export const CompileErrors = {
       `could not compile program: bad syntax in line: ${line}${detail ? ` (${detail})` : ''}`,
       { line },
     ),
-  jumpTargetNotFound: (name: string, line: number): CompileError =>
+  symbolNotFound: (name: string, line: number): CompileError =>
     new CompileError(
       '0002',
-      'compile failure: cannot find jump target',
-      `could not find the jump target: ${name}`,
-      { jumpTarget: name, line },
+      'compile failure: cannot find constant definition or jump target',
+      `could not find: ${name}`,
+      { constantName: name, line },
     ),
 };
 
@@ -42,21 +42,21 @@ export const RuntimeErrors = {
       '0100',
       'runtime error: negative number',
       `value is a negative number: ${value}`,
-      { value, cellIndexOfCommand: pc },
+      { value, programCounter: pc },
     ),
-  cellAccessFailure: (expr: string): RuntimeErrorAloha =>
+  cellAccessFailure: (expr: string, pc?: number): RuntimeErrorAloha =>
     new RuntimeErrorAloha(
       '0101',
       'runtime error: cell access failure',
       `cell id is negative or expression parsing error: ${expr}`,
-      { expression: expr },
+      { expression: expr, programCounter: pc },
     ),
   unknownCommand: (idContent: string, pc: number): RuntimeErrorAloha =>
     new RuntimeErrorAloha(
       'X002',
       'runtime error: unknown command id (implementation extension, not in spec)',
       `cell ${pc} does not contain a known command id: "${idContent}"`,
-      { pc, idContent },
+      { programCounter: pc, idContent },
     ),
   unresolvedJumpTarget: (name: string): RuntimeErrorAloha =>
     new RuntimeErrorAloha(
@@ -70,6 +70,6 @@ export const RuntimeErrors = {
       'X004',
       'runtime error: comparison with nil (implementation extension, not in spec)',
       'ifGtGoto cannot compare nil: both operands must evaluate to a number',
-      { cellIndexOfCommand: pc },
+      { programCounter: pc },
     ),
 };

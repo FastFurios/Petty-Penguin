@@ -15,9 +15,10 @@ export interface CompileResult {
   constants: Array<{ name: string; value: string }>;
 }
 
-// Symbols allow letters, digits, underscore and hyphen (e.g. loop-begin).
-const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
-const IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_-]*/g;
+// Symbols start with a letter, underscore, '#', '&', or '*', followed by any
+// number of letters, digits, underscore, or hyphen (e.g. loop-begin, #flag).
+const SYMBOL_RE = /^[A-Za-z_#&*][A-Za-z0-9_-]*$/;
+const IDENTIFIER_RE = /[A-Za-z_#&*][A-Za-z0-9_-]*/g;
 
 function isSymbol(s: string): boolean {
   return SYMBOL_RE.test(s);
@@ -53,16 +54,24 @@ export function compile(asmCsvText: string): CompileResult {
     if (row.jumpTarget !== '') {
       throw CompileErrors.badSyntax(row.lineNumber, 'a "define" row cannot have a jump target');
     }
-    const [name, value] = row.args;
+    const [name, rawValue] = row.args;
     if (!isSymbol(name)) {
       throw CompileErrors.badSyntax(row.lineNumber, `invalid constant name "${name}"`);
     }
+    // Substitute any already-known constant embedded in the value (e.g.
+    // `define PTR [MAX]`), same as for regular command arguments. Only
+    // constants defined earlier in the file are visible here; jump targets
+    // are never substituted into a define's value.
+    const value = rawValue.replace(IDENTIFIER_RE, (word) => {
+      if (constants.has(word)) return constants.get(word) as string;
+      throw CompileErrors.symbolNotFound(word, row.lineNumber);
+    });
     try {
       parseExpression(value);
     } catch {
       throw CompileErrors.badSyntax(
         row.lineNumber,
-        `define value must be an expression (a natural number or a bracketed expression), got "${value}"`,
+        `define value must be an expression (a natural number or a bracketed expression), got "${rawValue}"`,
       );
     }
     if (constants.has(name)) {
@@ -122,7 +131,7 @@ export function compile(asmCsvText: string): CompileResult {
           `jump target "${word}" cannot be used here; a jump target may only be used as the whole target argument of goto, ifEqGoto, or ifGtGoto`,
         );
       }
-      throw CompileErrors.jumpTargetNotFound(word, lineNumber);
+      throw CompileErrors.symbolNotFound(word, lineNumber);
     });
 
     try {

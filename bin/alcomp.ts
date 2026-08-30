@@ -21,6 +21,9 @@ function main(): void {
   } catch (err) {
     if (err instanceof AlohaError) {
       console.error(`[${err.code}] ${err.errorName}: ${err.message}`);
+      if (err.data !== undefined) {
+        console.error(`  data: ${JSON.stringify(err.data)}`);
+      }
       process.exit(1);
     }
     throw err;

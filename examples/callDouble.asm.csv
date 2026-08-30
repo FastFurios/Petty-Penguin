@@ -1,0 +1,62 @@
+; comment;  ## This program doubles an input numbers by using an double-function written in Aloha; this is to demonstrate how calls to a function can be done ## ;;;
+; comment;  Gerold Lindorfer Version 1.0 ;;;
+; comment;  ## main() ##;;;
+    ; comment;  # global definitions # ;;;
+                ; define;   &PC;   0                ;; storage cell of the program counter
+                ; define;   *PC;   [&PC]            ;; program counter value
+                ; define;   #CONTINUE-AFTER-RETURN;   8                 ;; number of cells from command to command 
+                ; define;   &RESULT;          15    ;; the cell into which the result is to be stored
+                ; define;   *RESULT;     [&RESULT]  ;; the result value
+                ; define;   &INPUT-ARG;       10    ;; storage cell of the input argument
+                ; define;   *INPUT-ARG; [&INPUT-ARG] ;; value of the operand in the input list
+    ; comment;  # initialize the call stack # ;;; 
+                ; define;   &STACK-BASE;   200      ;; bottom of the stack
+                ; define;   &STACK-CURR; 200;; pointer to bottom of latest i.e. newest allocated stack frame
+                ; define;   *STACK-CURR; [&STACK-CURR];; pointer to bottom of latest i.e. newest allocated stack frame
+                ; define;   #FRAME-SIZE;         10 ;; number of cells in a stack frame
+    ; comment;  # relative positions in a stack frame #  ;;; 
+                ; define;   #CALLER-PC;            0 ;; relative cell index offset of the program counter of the "calling" goto + 4
+                ; define;   #CALLER-STACK-CURR;    1 ;; relative cell index offset of the stack pointer of caller's stack frame
+                ; define;   #OPERAND-A;            2 ;; relative cell index offset of the first input paramter argument
+                ; define;   #RESULT-CELL;          3 ;; relative cell index offset of the cell in which the result should go
+    ; comment;  # some auxilliary working variables # ;;; 
+                ; define;   &AUX-0;       20;;  
+                ; define;   *AUX-0; [&AUX-0];;  
+                ; define;   &AUX-1;       21;; 
+                ; define;   *AUX-1; [&AUX-1];; 
+    ; comment;;;;
+    ; comment;  # initialize cells # ;;; 
+                ; add;  200; 0; &STACK-CURR; set the pointer to the the current stack to the stack base
+    ; comment;  # input values # ;;; 
+                ; importTo;       &INPUT-ARG;       ;; first operand
+    ; comment;;;;
+    ; comment;  ## prepare the function call ## ;;;
+        ; comment;  ## allocate a new stack frame and save my stack frame reference to the callee's stack frame ##;;;
+                ; add;      *STACK-CURR; 0; &AUX-0;                             save the current stack frame bottom 
+                ; add;      *STACK-CURR; #FRAME-SIZE; &STACK-CURR;              move the stack current pointer to the next frame 
+                ; add;      *STACK-CURR; #CALLER-STACK-CURR; &AUX-1;            calculate the absolute address of the cell with the callee's stack frame reference
+                ; add;      *AUX-0; 0; *AUX-1;                                  store the callee's stack frame reference
+        ; comment;  ## copy the input arguments to the callee's frame ##;;;
+                ; add;      *STACK-CURR; #OPERAND-A; &AUX-0;                    calculate the absolute address of the first argument in the stack frame
+                ; add;      *INPUT-ARG; 0; *AUX-0;                             copy the first input operand into the stack frame
+        ; comment;  ## copy the reference to the cell where the output should go ##;;;
+                ; add;      *STACK-CURR; #RESULT-CELL; &AUX-0;                  calculate the absolute address of the result argument in the stack frame
+                ; add;      &RESULT; 0; *AUX-0;                                 copy the destination cell index for the result into the callee's frame 
+        ; comment;  ## save the program counter where to continue after return after the caller's goto to the the callee's stack frame ##;;;
+                ; add;      *PC;  #CONTINUE-AFTER-RETURN;  *STACK-CURR;;;       store the command cell index of the actual goto at position 0 in the callee's frame                               
+                ; goto;     &THE-FUNCTION;;;                                    call the function
+                ; print;    *RESULT;;;                                          print the value returned from the function
+                ; exit;     ;;;                                          
+    ; comment;;;;
+    ; comment;;;;
+    ; comment;;;;
+    ; comment;  ## function DOUBLE(cell operand, result cell index) - BEGIN ## ;;;
+&THE-FUNCTION   ; add;      *STACK-CURR; #OPERAND-A; &AUX-0;                    calculate the cell of the first argument 
+                ; add;      *STACK-CURR; #RESULT-CELL; &AUX-1;                  calculate the cell with the reference to where the return value should go 
+        ; comment;  ## do the calculation ##;;;
+                ; add;      [*AUX-0]; [*AUX-0]; [*AUX-1];                       double the argument and store it in the caller's result cell 
+        ; comment;  ## prepare returning to the caller ##;;;
+                ; add;      *STACK-CURR; 0; &AUX-0;                             save my stack current pointer (containing the caller's next PC) to cell aux-0
+                ; add;      *STACK-CURR; #CALLER-STACK-CURR; &AUX-1;            calculate the cell with the caller's current stack frame
+                ; add;      [*AUX-1]; 0; &STACK-CURR;                             set the caller's current stack frame again
+                ; goto;     [*AUX-0]

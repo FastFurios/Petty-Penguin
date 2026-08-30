@@ -1,17 +1,33 @@
 import { Memory } from './memory';
 import { detectDelimiter, parseCsv } from './csv';
 import { COMMANDS_BY_ID } from './commands';
-import { RuntimeErrors } from './errors';
+import { RuntimeErrorAloha, RuntimeErrors } from './errors';
 import { evaluateString, evaluateStringNilable } from './expression';
+
+// Runs fn(), and if it throws a "cell access failure" (0101) that didn't
+// already carry a program counter (e.g. one raised deep inside expression
+// evaluation, which has no notion of "the currently executing command"),
+// attaches the given pc to it before rethrowing.
+function withProgramCounter<T>(pc: number, fn: () => T): T {
+  try {
+    return fn();
+  } catch (err) {
+    if (err instanceof RuntimeErrorAloha && err.code === '0101') {
+      err.data = { ...(err.data as Record<string, unknown> | undefined), programCounter: pc };
+    }
+    throw err;
+  }
+}
 
 export interface RunOptions {
   startCell: number;
   inputLoadCell: number;
   input: number[];
+  debug?: boolean;
 }
 
-// Must match compiler.ts's SYMBOL_RE: letters, digits, underscore and hyphen.
-const SYMBOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+// Must match compiler.ts's SYMBOL_RE.
+const SYMBOL_RE = /^[A-Za-z_#&*][A-Za-z0-9_-]*$/;
 
 // Loads the Executable code into Machine memory starting at `startCell`, i.e.
 // row i of the Executable code lands in the Machine cell with index
@@ -48,10 +64,20 @@ export function loadMachineCode(csvText: string, startCell: number): Memory {
   return memory;
 }
 
-export function run(memory: Memory, options: RunOptions, print: (n: number) => void): void {
+export function run(
+  memory: Memory,
+  options: RunOptions,
+  print: (n: number) => void,
+  debugLog: (line: string) => void = () => {},
+): void {
   let pc = options.startCell;
   let inputCursor = options.inputLoadCell;
   const inputQueue = [...options.input];
+
+  // Cell 1 is reserved: it holds the starting cell index for `import`'s
+  // consecutive storage. Set once; `import` does not change this value even
+  // as its own internal cursor advances.
+  memory.set(1, String(options.inputLoadCell));
 
   for (;;) {
     // Cell 0 is reserved: it always holds the index of the cell currently
@@ -67,8 +93,8 @@ export function run(memory: Memory, options: RunOptions, print: (n: number) => v
     const argRaw = [memory.get(pc + 1), memory.get(pc + 2), memory.get(pc + 3)];
     const evalArg = (i: number): number => {
       const raw = argRaw[i];
-      if (raw === null) throw RuntimeErrors.cellAccessFailure(`<nil argument ${i + 1} at cell ${pc}>`);
-      return evaluateString(raw, memory);
+      if (raw === null) throw RuntimeErrors.cellAccessFailure(`<nil argument ${i + 1} at cell ${pc}>`, pc);
+      return withProgramCounter(pc, () => evaluateString(raw, memory));
     };
     // For parameters typed "expression or nil" (ifEqGoto/ifGtGoto's operands):
     // an empty argument cell, or an expression that dereferences to an empty
@@ -76,8 +102,24 @@ export function run(memory: Memory, options: RunOptions, print: (n: number) => v
     const evalArgNilable = (i: number): number | null => {
       const raw = argRaw[i];
       if (raw === null) return null;
-      return evaluateStringNilable(raw, memory);
+      return withProgramCounter(pc, () => evaluateStringNilable(raw, memory));
     };
+
+    if (options.debug) {
+      const formatArg = (i: number): string => {
+        if (i >= spec.arity) return 'nil';
+        const raw = argRaw[i];
+        if (raw === null) return 'nil';
+        const nilable = spec.nilableArgIndices?.includes(i) ?? false;
+        const value = withProgramCounter(pc, () =>
+          nilable ? evaluateStringNilable(raw, memory) : evaluateString(raw, memory),
+        );
+        return value === null ? 'nil' : String(value);
+      };
+      // "address of the current command i.e. the value in cell 0" - pc and
+      // cell 0 are always equal at this point, since we just wrote it above.
+      debugLog(`${pc} | ${id} | ${formatArg(0)} | ${formatArg(1)} | ${formatArg(2)}`);
+    }
 
     switch (spec.name) {
       case 'import': {

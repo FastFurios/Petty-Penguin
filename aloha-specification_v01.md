@@ -33,7 +33,7 @@ In Aloha Assembler we can use symbols as
 - Jump Targets. 
 
 ## Assembler Constants
-A Constant is a pair of a symbol, the constant'S name, and an unevaluated expression.
+A constant is a pair of a symbol, the constant's name, and an unevaluated expression.
 Constants exist only in Aloha Assembler code. When the Aloha compiler translates the Aloha Asembler code into Aloha Machine code it substitutes the Constants' names with the defined unevaluated expression.
 
 Aloha Assembler knows 2 types of constants:
@@ -43,7 +43,6 @@ Aloha Assembler knows 2 types of constants:
 ## Jump Targets
 Jump targets can be used in the first column in the Assembler code csv and the Executable code csv.
 Also, in Assembler and Executable Code, jump targets are accepted as argument in goto-type commands. 
-
 
 ## Commands and Arguments
 Each command takes 4 cells, i.e one for the command id and 3 successor cells for arguments.
@@ -112,7 +111,7 @@ $ alcomp <Aloha-Assembler-code-file.csv> <Aloha-Machine-code-file.csv>
 ```
 The compiler reads the command quadruples of each row from the Assembler code csv file, ignoring the rows with the command "define", and assigns the command and its 3 arguments to 4 consecutive cells in the Machine code. 
 
-It substitutes the contant names but not the jump targets.  It validates — at compile time — that every jump-target symbol used as a target argument actually exists as some row's label somewhere in the file.
+It substitutes the contant names every where in the code but not the jump targets. It validates — at compile time — that every jump-target symbol used as a target argument actually exists as some row's label somewhere in the file.
 It prints the list of constants as pairs of constant name and the unevaluated expression to the console. 
 
 The compiler prints a log with compiler warnings and errors and success messages to the console. 
@@ -121,7 +120,7 @@ List of compilation errors:
 | Error | Name | Message | Additional data |
 | ---- | ---- | ---- | ---- |
 | 0001 | compile failure: bad syntax | could not compile program: bad syntax in line: | line number in Assembler code csv file |
-| 0002 | compile failure: cannot find jump target | could not find the jump target: | jump target constant name |
+| 0002 | compile failure: cannot find constant definition or jump target | could not find: | constant name and line number in Assembler code csv |
 
 ## Run a Aloha Machine program
 The Aloha Runtime can load a Aloha Machine code program into its Aloha Machine and runs it there. 
@@ -129,7 +128,7 @@ In the loading process the ALoha Runtime substitutes all jump targets with the r
 
 The Aloha Runtime can be run from a host machine's shell calling 
 ```
-$ aloha <Aloha-Machine-code-file.csv> <cell index with the aloha program command to start with> <cell index from where on the numbers of the input list should be consecutively stored> <the input list of natural numbers>
+$ aloha <Aloha-Machine-code-file.csv> <optional debug-mode> <cell index with the aloha program command to start with> <cell index from where on the numbers of the input list should be consecutively stored> <the input list of natural numbers>
 ```
 
 Example: may findMaxNumber be a program that returns the greatest number in the input list, then
@@ -139,14 +138,27 @@ $aloha findMaxNumber.csv 200 100 34 11 98 9 37 67
 starts execution with the executing of the first command i.e. the command in the cell with index 200. Any input value imports of the input list elements, starting here with the value 34, will be stored consecutively in cells starting with index 100.    
 Eventually it returns to the console the result 98.
 
-The Aloha runtime maintains the index of the cell with the command being currently executed in the cell 0.  
+The Aloha runtime 
+- maintains the index of the cell with the command being currently executed in the cell 0
+- stores the cell index from where on the numbers of the input list should be consecutively stored when being imported with the 'import' command in the cell 1. The Aloha runtime leaves the value unchanged when executing import commands.
 
-Warning: make sure you leave enough memory cells for the Machine to assign memory cells for the not explicitely defined constants before you allocate memory cells for the imported input values and the program code. 
+
+Warning: make sure you leave enough memory cells for the Machine to assign memory cells for the not explicitely defined constants before you allocate memory cells for the imported input values and the program code.   
+
+The Aloha runtime can be run with debug-mode on: when running aloha from the command line just add "--debug" right behind the aloha command:
+```
+$aloha --debug findMaxNumber.csv 200 100 34 11 98 9 37 67 
+```
+
+In debug mode, aloha writes a debug line to the console for each command when it is being executed. The line looks as follows:
+```
+address of the current command i.e. the value in cell 0 | command id | evaluated argument 1 | evaluated argument 2 | evaluated argument 3 
+```
 
 ### Runtime errors
 When an unexpected error arises during loading or executing the Machine code program, the aloha Runtime writes an error message to the console.
 
-WHen an loading or execution error occurres the Aloha Runtime writes a dump file. Format of the dump file: for all non nil cells list as a table with rows in ascending order of the cell number: 
+When an loading or execution error occurres the Aloha Runtime writes a dump file. Format of the dump file: for all non nil cells list as a table with rows in ascending order of the cell number: 
 1. cell index
 1. the unevaluated content of cell 
 
@@ -154,8 +166,8 @@ The name of the dumpfile is: "\<name of the aloha program file that has been exe
 Example: findMaxNumber_2026-08-15_21_21-04-13.dump
 
 List of runtime errors:
-| Error | Name | Message | Additional data |
-| ---- | ---- | ---- | ---- |
+| Error | Name | Message | Additional data | 
+| ---- | ---- | ---- | ---- | 
 | 0100 | runtime error: negative number | value is a negative number: | number and the cell index of the command being executed |
-| 0101 | runtime error: cell access failure | cell id is negative or expression parsing error: | the unevaluated expression |
+| 0101 | runtime error: cell access failure | cell id is negative or expression parsing error: | the unevaluated expression and the program counter |
 

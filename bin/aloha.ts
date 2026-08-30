@@ -7,13 +7,15 @@ import { AlohaError } from '../src/errors';
 
 function usageAndExit(): never {
   console.error(
-    'Usage: aloha <Aloha-Machine-code-file.csv> <start cell index> <input load cell index> <input list of natural numbers...>',
+    'Usage: aloha [--debug] <Aloha-Machine-code-file.csv> <start cell index> <input load cell index> <input list of natural numbers...>',
   );
   process.exit(1);
 }
 
 function main(): void {
-  const [, , machinePath, startCellStr, inputLoadCellStr, ...inputStrs] = process.argv;
+  const rawArgs = process.argv.slice(2);
+  const debug = rawArgs.includes('--debug');
+  const [machinePath, startCellStr, inputLoadCellStr, ...inputStrs] = rawArgs.filter((a) => a !== '--debug');
   if (!machinePath || startCellStr === undefined || inputLoadCellStr === undefined) {
     usageAndExit();
   }
@@ -33,10 +35,18 @@ function main(): void {
 
   try {
     memory = loadMachineCode(csvText, startCell);
-    run(memory, { startCell, inputLoadCell, input }, (n) => console.log(n));
+    run(
+      memory,
+      { startCell, inputLoadCell, input, debug },
+      (n) => console.log(n),
+      (line) => console.error(line),
+    );
   } catch (err) {
     if (err instanceof AlohaError) {
       console.error(`[${err.code}] ${err.errorName}: ${err.message}`);
+      if (err.data !== undefined) {
+        console.error(`  data: ${JSON.stringify(err.data)}`);
+      }
       if (memory) {
         const dumpPath = writeDump(machinePath, memory);
         console.error(`Dump written to: ${dumpPath}`);

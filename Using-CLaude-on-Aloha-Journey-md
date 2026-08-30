@@ -32,4 +32,30 @@
 
  ## 2026-08-25
 - I let Claude add a accessible program counter in cell 0
-- I introduce a new Assembler command "comment". Claude build this command into the code.
+- I introduce a new Assembler command "comment". Claude builds this command into the code.
+- Working unassisted on my first function call Aloha program
+
+ ## 2026-08-29 and -30
+- Working unassisted on my first function call Aloha program
+- Let Claude change the alcomp compiler to allow #, & and * as define name beginnings. That will support my new convention:
+  - \# are number constants
+  - & are cell reference
+  - \* is the value of a cell reference
+- alcomp throws errors when a define has an expression with a embedded define name. I explicitely clarify the intended behavior in the specification. Claude suggests corrections in alcomp code and implements them. 
+- $ node dist/bin/alcomp.js examples/callDouble.asm.csv examples/callDouble.machine.csv    => runs and finished w/o error
+- $ node dist/bin/aloha examples/callDouble.machine.csv 400 3 => [0101] runtime error: cell access failure: cell id is negative or expression parsing error: [[200]]
+- I ask Claude to add the program counter at which the error occured by making an addition to the specification. It adds the change an makes even sure that it is the pc of the command cell not the cell that causes the problem when being dereferenced. Great!
+- Claude forgot to print the program counter; got it fixed
+- I let CLaude add an optional debug flag for the aloha command.
+- I finally get my callDouble.asm program to work correctly...really difficult. It had some bugs with indirect addressing where I had forgotton to double dereference cell addresses. Had to run the program in debug mode many times and fix one bug after the other  
+- Now working on a call-version of add that has 2 parameters
+- Let Claude add some more data when compiler error "0002" occurres
+- After intensive debugging I got callAdd to work finally: it calculates correctly the sum of the 2 input numbers
+```
+$ node dist/bin/aloha --debug examples/callAdd.machine.csv 400 3 18 12   => 30  // remark: the '3' as the input values list beginning in the machine memory is obsolete in this example and not used
+```  
+I have Claude change Aloha runtime so it stores the beginning cell index of the input values list in cell 1.
+Claude interprets it not the way I want it: it assumes the value in this cell should increment with every import command. I have Claude correct that by make this explicit in the specifications.
+
+
+
