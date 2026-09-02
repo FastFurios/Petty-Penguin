@@ -56,6 +56,7 @@ $ node dist/bin/aloha --debug examples/callAdd.machine.csv 400 3 18 12   => 30  
 ```  
 I have Claude change Aloha runtime so it stores the beginning cell index of the input values list in cell 1.
 Claude interprets it not the way I want it: it assumes the value in this cell should increment with every import command. I have Claude correct that by make this explicit in the specifications.
+- Implementing of callSumRecursive not completed yet ...
 
 
 

@@ -2,101 +2,101 @@
 ; comment;  Gerold Lindorfer Version 1.0 ;;;
 ; comment;  ## main() ##;;;
     ; comment;  # global definitions # ;;;
-                ; define;   &PC;   0                ;; storage cell of the program counter
-                ; define;   *PC;   [&PC]            ;; program counter value
-                ; define;   &INPUT-LIST-START; 1  ;; storage cell where the runtime stores the index of the first cell from where on the input values are to be imported to 
-                ; define;   *INPUT-LIST-START; [&INPUT-LIST-START]  ;; storage cell of the first input list element 
-                ; define;   #JUMP-AFTER-RETURN;   8                 ;; number of cells from command to command 
-                ; define;   &RESULT;          15    ;; the global cell index into which the result is to be stored in the main program
-                ; define;   *RESULT;     [&RESULT]  ;; the result value
-                ; define;   &INPUT-CURSOR;    10    ;; storage cell that holds the current input argument cell index
-                ; define;   *INPUT-CURSOR; [&INPUT-CURSOR] ;; current input argument cell index
+                ; define;   &PC;   0                       ;; storage cell of the program counter
+                ; define;   PC;   [&PC]                    ;; program counter value
+                ; define;   &INPUT-LIST-START;          1  ;; storage cell where the runtime stores the index of the first cell from where on the input values are to be imported to 
+                ; define;   INPUT-LIST-START; [&INPUT-LIST-START]  ;; storage cell of the first input list element 
+                ; define;   JUMP-WIDTH-AFTER-RETURN;    8  ;; number of cells from command to command 
+                ; define;   &RESULT-GLOBAL;            15  ;; the global cell index into which the result is to be stored in the main program
+                ; define;   RESULT-GLOBAL; [&RESULT-GLOBAL];; the result value in he man program context
+                ; define;   &INPUT-LIST-CURSOR;        10  ;; storage cell that holds the current input argument cell index
+                ; define;   INPUT-LIST-CURSOR; [&INPUT-LIST-CURSOR] ;; pointer t othe current input list element
     ; comment;  # initialize the call stack # ;;; 
                 ; define;   #STACK-BASE;        200 ;; bottom of the stack
-                ; define;   &STACK-CURR;        200 ;; pointer to bottom of latest i.e. newest allocated stack frame
-                ; define;   *STACK-CURR; [&STACK-CURR];; pointer to bottom of latest i.e. newest allocated stack frame
+                ; define;   &STACK-CURR;        200 ;; cell with the pointer to bottom of the current stack frame
+                ; define;   STACK-CURR; [&STACK-CURR];; pointer to bottom of the current stack frame
                 ; define;   #FRAME-SIZE;         10 ;; number of cells in a stack frame
-    ; comment;  # relative positions in a stack frame #  ;;; 
-                ; define;   #CALLER-PC;            0 ;; relative cell index offset of the program counter of the "calling" goto + 4
-                ; define;   #CALLER-STACK-CURR;    1 ;; relative cell index offset of the stack pointer of caller's stack frame
-                ; define;   #OPERANDS;             2 ;; relative cell index offset of the first input paramter argument
-                ; define;   #RESULT-CELL;          3 ;; relative cell index offset of the cell in which the result should go in the caller's stack frame
-                ; define;   #WORKING-CELL-RESULT;  4 ;; relative cell index offset of the cell in which an intermediate value can be stored i.e. a returned result from a call 
+    ; comment;  # relative arguments and local variables positions in a stack frame #  ;;; 
+                ; define;   #REL-CALLER-PC;        0 ;; relative cell index offset from STACK-CURR which holds the program counter where the caller should continue processing after returning 
+                ; define;   #REL-CALLER-STACK-BOTTOM; 1 ;; relative cell index offset from STACK-CURR which holds the pointer to the caller's stack frame bottom
+                ; define;   #REL-OPERANDS;         2 ;; relative cell index offset from STACK-CURR which holds the first input paramter argument, typically a pointer to a list of arguments
+                ; define;   #REL-RESULT-CELL;      3 ;; relative cell index offset from STACK-CURR which holds the cell in which the result should go in the caller's stack frame
+                ; define;   #REL-RESULT-RECEIVER-CELL-LOCAL;  4 ;; relative cell index offset from STACK-CURR which holds the cell in the caller's stack frame which ought to receive the returned result from a call 
     ; comment;  # some auxilliary working variables # ;;; 
-                ; define;   &AUX-0;       20;; for pointer arithmatic only 
-                ; define;   *AUX-0; [&AUX-0];;  
-                ; define;   &AUX-1;       21;; for pointer arithmatic only
-                ; define;   *AUX-1; [&AUX-1];; 
-                ; define;   &AUX-2;       22;; for pointer arithmatic only 
-                ; define;   *AUX-2; [&AUX-2];;
-                ; define;   &AUX-FIRST-ELEM-POINTER;  23;; 
-                ; define;   *AUX-FIRST-ELEM-POINTER;  [&AUX-FIRST-ELEM-POINTER];;  
-                ; define;   &AUX-NEXT-ELEM-POINTER;   24;; 
-                ; define;   *AUX-NEXT-ELEM-POINTER;   [&AUX-NEXT-ELEM-POINTER];; 
+                ; define;   &AUX-0;       20;; for pointer arithmetics only 
+                ; define;   AUX-0;  [&AUX-0];;  
+                ; define;   &AUX-1;       21;; for pointer arithmetics only
+                ; define;   AUX-1;  [&AUX-1];; 
+                ; define;   &AUX-2;       22;; for pointer arithmetics only 
+                ; define;   AUX-2;  [&AUX-2];;
+                ; define;   &AUX-3;       23;; for other use 
+                ; define;   AUX-3;  [&AUX-3];;
+                ; define;   &AUX-4;       24;; for other use 
+                ; define;   AUX-4;  [&AUX-4];;
     ; comment;;;;
     ; comment;  # initialize cells # ;;; 
-                ; add;  #STACK-BASE; 0; &STACK-CURR;           set the pointer to the the current stack to the stack base
-                ; add;  *INPUT-LIST-START; 0; &INPUT-CURSOR;   initialize the input list cursor 
+                ; add;  #STACK-BASE; 0; &STACK-CURR;                    initialize the pointer to the the current stack frame with the stack base
+                ; add;  INPUT-LIST-START; 0; &INPUT-LIST-CURSOR;        initialize the input list cursor with the start of the input list 
     ; comment;;;;
     ; comment;  # import the input values # ;;; 
 IMPORT-NEXT     ; import;;;;
-                ; ifEqGoto; [*INPUT-CURSOR]; nil; IMPORT-FINISHED;  if end of list break loop
-                ; add;   *INPUT-CURSOR; 1; &INPUT-CURSOR;         increment cursor
-                ; goto; IMPORT-NEXT;;;                            continue loop
+                ; ifEqGoto; [INPUT-LIST-CURSOR]; nil; IMPORT-FINISHED;  if end of list break loop
+                ; add;  INPUT-LIST-CURSOR; 1; &INPUT-LIST-CURSOR;       increment cursor
+                ; goto; IMPORT-NEXT;;;                                  continue loop
     ; comment;;;;
     ; comment;  ## prepare the function call ## ;;;
-        ; comment;  ## allocate a new stack frame and save my stack frame reference to the callee's stack frame ##;;;
-IMPORT-FINISHED ; add;      *STACK-CURR; 0; &AUX-0;                             save the current stack frame bottom 
-         ; add; [1000]; [1001]; 1002;
-                ; add;      *STACK-CURR; #FRAME-SIZE; &STACK-CURR;              move the stack current pointer to the next frame 
-                ; add;      *STACK-CURR; #CALLER-STACK-CURR; &AUX-1;            calculate the absolute address of the cell with the callee's stack frame reference
-                ; add;      *AUX-0; 0; *AUX-1;                                  store the callee's stack frame reference as the 2. argument  in the called function stack frame 
-        ; comment;  ## copy the cell index of the first input arguments  to the callee's frame ##;;;
-                ; add;      *STACK-CURR; #OPERANDS; &AUX-0;                     calculate the absolute address of the argument of the first input in the stack frame
-                ; add;      *INPUT-LIST-START; 0; *AUX-0;                       copy the pointer to the first input value in the operand argument into the stack frame
+        ; comment;  ## allocate a new stack frame and save my stack frame reference to the callee's stack frame parameter ##;;;
+IMPORT-FINISHED ; add;      STACK-CURR; 0; &AUX-0;                             save the current stack frame bottom 
+                ; add;      STACK-CURR; #FRAME-SIZE; &STACK-CURR;              move the stack current pointer to the next frame 
+                ; add;      STACK-CURR; #REL-CALLER-STACK-BOTTOM; &AUX-1;      calculate the absolute address of the cell with the callee's stack frame reference
+                ; add;      AUX-0; 0; AUX-1;                                   store the callee's stack frame reference as the 2. argument  in the called function stack frame 
+        ; comment;  ## copy the cell index of the first input argument to the callee's stack frame parameter ##;;;
+                ; add;      STACK-CURR; #REL-OPERANDS; &AUX-0;                 calculate the absolute address of the argument of the first input in the stack frame
+                ; add;      INPUT-LIST-START; 0; AUX-0;                        copy the pointer to the first input value in the operand argument into the stack frame
         ; comment;  ## copy the reference to the cell where the output should go ##;;;
-                ; add;      *STACK-CURR; #RESULT-CELL; &AUX-0;                  calculate the absolute address of the result argument in the stack frame
-                ; add;      &RESULT; 0; *AUX-0;                                 copy the destination cell index for the result into the callee's frame 
+                ; add;      STACK-CURR; #REL-RESULT-CELL; &AUX-0;              calculate the absolute address of the result argument in the stack frame
+                ; add;      &RESULT-GLOBAL; 0; AUX-0;                          copy the destination cell index for the result into the callee's frame 
         ; comment;  ## save the program counter where to continue after return after the caller's goto to the the callee's stack frame ##;;;
-                ; add;      *PC;  #JUMP-AFTER-RETURN;  *STACK-CURR;;;       store the command cell index of the actual goto at position 0 in the callee's frame                               
-                ; goto;     THE-FUNCTION;;;                                     call the function
-                ; print;    *RESULT;;;                                          print the value returned from the function
+                ; add;      PC;  JUMP-WIDTH-AFTER-RETURN;  STACK-CURR;;;       store the command cell index of the actual goto at position 0 in the callee's frame                               
+                ; goto;     THE-FUNCTION;;;                                    call the function
+                ; print;    RESULT-GLOBAL;;;                                   print the value returned from the function
                 ; exit;     ;;;                                          
     ; comment;;;;
-    ; comment;;;;
+    ; comment;;;; ######################## 31.8. work ended here ###################
     ; comment;;;;
     ; comment;  ## function SUM-RECURSIVE (reference to the cell operands list, reference to the result cell) - BEGIN ## ;;;
-        THE-FUNCTION    ; add;      *STACK-CURR; #OPERANDS; &AUX-0;                             calculate the cell index of the first argument that contains the cursor pointer to the first input value 
-                        ; add;      [*AUX-0]; 0; &AUX-FIRST-ELEM-POINTER;                       dereference the first input argument parameter and store the value there as the first operand for adding
-                        ; add;      [*AUX-0]; 1; &AUX-NEXT-ELEM-POINTER;                        calculate the index of the cell following the cursor  
+        THE-FUNCTION    ; add;      STACK-CURR; #REL-OPERANDS; &AUX-3;                          list elem 0's cell: calculate the cell index of the first argument that contains the cursor pointer to the first input value 
+                        ; add;      [AUX-3]; 1; &AUX-4;                                         list elem 1's cell: calculate the index of the cell following the cursor  
+        ; print;    12345;;;
                 ; comment;  ## do the calculation ##;;;
-                        ; ifEqGoto; [[*AUX-FIRST-ELEM-POINTER]]; nil; RETURN-A-ZERO;            if end of input list then jump to returning a 0, i.e. the neutral element of adding
+                        ; ifEqGoto; [[AUX-3]]; nil; RETURN-A-ZERO;                             if end of input list then jump to returning a 0, i.e. the neutral element of adding
                 ; comment;  ## prepare and call the recursive function ## ;;;
-                        ; comment;  ## allocate a new stack frame and save my stack frame reference to the callee's stack frame ##;;;
-                                ; add;      *STACK-CURR; 0; &AUX-0;                             save the current stack frame bottom 
-                                ; add;      *STACK-CURR; #FRAME-SIZE; &STACK-CURR;              move the stack current pointer to the next frame 
-                                ; add;      *STACK-CURR; #CALLER-STACK-CURR; &AUX-1;            calculate the absolute address of the cell with the callee's stack frame reference
-                                ; add;      *AUX-0; 0; *AUX-1;                                  store the callee's stack frame reference
-                        ; comment;  ## copy the cell index of the first input arguments  to the callee's frame ##;;;
-                                ; add;      *STACK-CURR; #OPERANDS; &AUX-0;                     calculate the absolute address of the argument of the first input in the stack frame
-                                ; add;      *AUX-NEXT-ELEM-POINTER; 0; *AUX-0;                  copy the cursor pointer to the next input value in the operand argument into the stack frame
-                        ; comment;  ## copy the reference to the cell where the output should go ##;;;
-                                ; add;      *STACK-CURR; #RESULT-CELL; &AUX-0;                  calculate the absolute address of the result argument in the stack frame
-                                ; add;      *STACK-CURR; #WORKING-CELL-RESULT; &AUX-1;            calculate the absolute address of the cell with the callee's stack frame reference
-                                ; add;      *AUX-1; 0; *AUX-0;                                 copy the destination cell index for the result into the callee's frame 
-                        ; comment;  ## save the program counter where to continue after return after the caller's goto to the the callee's stack frame ##;;;
-                                ; add;      *PC;  #JUMP-AFTER-RETURN;  *STACK-CURR;;;       store the command cell index of the actual goto at position 0 in the callee's frame                               
-                                ; goto;     THE-FUNCTION;;;                                    call the function
-                                ; add; *STACK-CURR;  #WORKING-CELL-RESULT; &AUX-0;              absolute address of the cell with the callee's stack frame reference
-                                ; add; *STACK-CURR;  #RESULT-CELL; &AUX-1;                      absolute address of the cell with the callee's stack frame reference
-                                ; add; [*AUX-FIRST-ELEM-POINTER]; *AUX-0; *AUX-1;               store the result returned from the call into the cell referred to as result cell by the caller
+                ; comment;  ## allocate a new stack frame and save my stack frame reference to the callee's stack frame ##;;;
+                        ; add;      STACK-CURR; 0; &AUX-0;                                      save the current stack frame bottom 
+                        ; add;      STACK-CURR; #FRAME-SIZE; &STACK-CURR;                       move the stack current pointer to the next frame 
+                        ; add;      STACK-CURR; #REL-CALLER-STACK-BOTTOM; &AUX-1;               calculate the absolute address of the cell with the callee's stack frame reference
+                        ; add;      AUX-0; 0; AUX-1;                                            store the callee's stack frame reference
+                ; comment;  ## copy the cell index of the first input arguments  to the callee's frame ##;;;
+                        ; add;      STACK-CURR; #REL-OPERANDS; &AUX-0;                          calculate the absolute address of the argument of the first input in the stack frame
+                        ; add;      AUX-4; 0; AUX-0;                                            copy the cursor pointer to the next input value in the operand argument into the stack frame
+                ; comment;  ## copy the reference to the cell where the output should go ##;;;
+                        ; add;      STACK-CURR; #REL-RESULT-CELL; &AUX-0;                       calculate the absolute address of the result argument in the stack frame
+                        ; add;      STACK-CURR; #REL-RESULT-RECEIVER-CELL-LOCAL; &AUX-1;        calculate the absolute address of the cell with the callee's stack frame reference
+                        ; add;      AUX-1; 0; AUX-0;                                            copy the destination cell index for the result into the callee's frame 
+                ; comment;  ## save the program counter where to continue after return after the caller's goto to the the callee's stack frame ##;;;
+                        ; add;      PC;  JUMP-WIDTH-AFTER-RETURN;  STACK-CURR;;;                store the command cell index of the actual goto at position 0 in the callee's frame                               
+                        ; goto;     THE-FUNCTION;;;                                             call the function
+                        ; add;      STACK-CURR;  #REL-RESULT-RECEIVER-CELL-LOCAL; &AUX-0;       absolute address of the local variable in the callee's stack frame that received to callee's result 
+                        ; add;      STACK-CURR;  #REL-RESULT-CELL; &AUX-1;                      absolute address of the the local variable in the caller's stack frame to receive the my result
+                        ; add;      [AUX-3]; AUX-0; AUX-1;                                      add the list elem 0 and the received result from the recursive call and storenit in the caller's result cell 
                 ; comment;  ## prepare returning to the caller ##;;;
-                        ; goto;     RETURN-FROM-CALL;;;                                        jump back right after the call of the function                ; comment;  ## return a 0 ## ;;;
+                        ; goto;     RETURN-FROM-CALL;;;                                         jump back right after the call of the function                ; comment;  ## return a 0 ## ;;;
                 ; comment;  ## prepare returning to the caller with result 0##;;;
-RETURN-A-ZERO           ; add; *STACK-CURR; #RESULT-CELL;         &AUX-0;                      adress of the return cell argument
-                        ; add; 0;            0;                    *AUX-0;                      write 0 in the caller's result cell                      
+RETURN-A-ZERO           ; add; STACK-CURR; #REL-RESULT-CELL;         &AUX-0;                    adress of the return cell argument
+                        ; add;      0; 0; [AUX-0];                                                write 0 in the caller's result cell                      
                 ; comment;  ## prepare returning to the caller ##;;;
-RETURN-FROM-CALL; add   ; *STACK-CURR; 0; &AUX-0;                            save my stack current pointer (containing the caller's next PC) to cell aux-0
-                        ; add;      *STACK-CURR; #CALLER-STACK-CURR; &AUX-2;           calculate the cell with the caller's current stack frame
-                        ; add;      [*AUX-2]; 0; &STACK-CURR;                          set the caller's current stack frame again
-                        ; goto;     [*AUX-0];;;                                        jump back right after the call of the function
+RETURN-FROM-CALL        ; add;      STACK-CURR; 0; &AUX-0;                                      PC of the caller
+                        ; add;      STACK-CURR; #REL-CALLER-STACK-BOTTOM; &AUX-2;               calculate with the caller's current stack frame
+                        ; add;      [AUX-2]; 0; &STACK-CURR;                                    set the caller's current stack frame again
+        ; print;    54321;;;
+                        ; goto;     [AUX-0];;;                                                  jump back right after the call of the function
